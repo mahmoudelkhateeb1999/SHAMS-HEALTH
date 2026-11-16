@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shams Health | صيدليات شمس - متابعة InBody والتغذية العلاجية</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Cairo', sans-serif; background-color: #f4f8fb; }
+    .shams-gradient { background: linear-gradient(135deg, #004e92 0%, #0077b6 55%, #10b981 100%); }
+    .card-shadow { box-shadow: 0 10px 25px -5px rgba(0, 78, 146, 0.08), 0 4px 10px -2px rgba(16, 185, 129, 0.05); }
+    .loader { border: 3px solid #f3f3f3; border-top: 3px solid #0077b6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ==================== إعدادات الربط السحابي ==================== -->
+  <script>
+    const SUPABASE_URL = 'https://uelowmvwvkcrdiwnephh.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_K4hNXRItEbA9L5B9LGyVlg_MpNQhWmu';
+
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <!-- ==================== الشريط العلوي ==================== -->
+  <header class="shams-gradient text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="showView('login')">
+        <div class="bg-white/20 backdrop-blur-md p-2 rounded-xl border border-white/30">
+          <svg class="w-7 h-7 text-emerald-300" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364l-1.414-1.414M7.05 7.05L5.636 5.636m12.728 0l-1.414 1.414M7.05 16.95l-1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight flex items-center gap-2">
+            Shams Health <span class="text-xs bg-emerald-400/20 text-emerald-200 px-2 py-0.5 rounded-full border border-emerald-300/30">صيدليات شمس</span>
+          </h1>
+          <p class="text-xs text-blue-100">منصة الرشاقة والتغذية العلاجية ومتابعة InBody</p>
+        </div>
+      </div>
+
+      <div id="userStatusBar" class="flex items-center gap-2 text-xs">
+        <button onclick="showView('login')" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-50 transition">
+          تسجيل الدخول / الرئيسية
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== إشعارات النظام ==================== -->
+  <div id="toast" class="fixed bottom-5 left-5 z-50 hidden bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold flex items-center gap-3 transition-all">
+    <span id="toastIcon">✅</span>
+    <span id="toastMsg">تم الحفظ بنجاح</span>
+  </div>
+
+  <!-- ==================== المحتوى الرئيسي ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+
+    <!-- 1. شاشة تسجيل الدخول الموحدة -->
+    <section id="view-login" class="max-w-lg mx-auto mt-6">
+      <div class="bg-white rounded-3xl p-8 card-shadow border border-slate-100">
+        <div class="text-center mb-6">
+          <span class="inline-block bg-emerald-50 text-emerald-700 font-bold text-xs px-3 py-1 rounded-full mb-2">بوابة الرعاية الصحية الذكية</span>
+          <h2 class="text-2xl font-extrabold text-slate-800">مرحباً بك في Shams Health</h2>
+          <p class="text-sm text-slate-500 mt-1">اختر صفة الدخول للمتابعة</p>
+        </div>
+
+        <!-- تبويبات نوع المستخدم -->
+        <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1.5 rounded-2xl mb-6 text-sm font-bold">
+          <button type="button" onclick="setLoginRole('client')" id="tab-client" class="py-2.5 rounded-xl bg-white text-blue-800 shadow transition">عميل / مراجع</button>
+          <button type="button" onclick="setLoginRole('pharmacist')" id="tab-pharmacist" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition">صيدلي شمس</button>
+          <button type="button" onclick="setLoginRole('doctor')" id="tab-doctor" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition">طبيب شريك</button>
+        </div>
+
+        <form onsubmit="handleLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-1">رقم الجوال</label>
+            <input type="tel" id="loginPhone" required placeholder="05xxxxxxxx" dir="ltr" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left font-semibold" />
+          </div>
+
+          <div id="pinFieldContainer" class="hidden">
+            <label class="block text-sm font-bold text-slate-700 mb-1">رمز الدخول السري (PIN)</label>
+            <input type="password" id="loginPin" placeholder="••••" dir="ltr" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-left font-bold tracking-widest" />
+          </div>
+
+          <button type="submit" id="loginBtn" class="w-full shams-gradient text-white font-bold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition flex items-center justify-center gap-2">
+            <span>دخول للمنصة</span>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-5 border-t border-slate-100 text-center text-xs text-slate-400">
+          جميع البيانات الصحية مشفرة ومحمية وفق معايير الخصوصية الطبية لصيدليات شمس
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. لوحة تحكم الصيدلي (Pharmacist Admin Dashboard) -->
+    <section id="view-pharmacist" class="hidden space-y-6">
+      <!-- شريط الترحيب والإعدادات -->
+      <div class="bg-white rounded-3xl p-6 card-shadow border border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">لوحة تحكم الصيدلي المختص</span>
+          <h2 id="pharmWelcomeName" class="text-2xl font-extrabold text-slate-800 mt-1">أهلاً دكتور</h2>
+          <p id="pharmBranchName" class="text-sm text-slate-500">صيدليات شمس</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="openModal('modal-new-client')" class="bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ عميل جديد</button>
+          <button onclick="openModal('modal-new-doctor')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ إضافة طبيب شريك</button>
+          <button onclick="openModal('modal-ai-settings')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold px-4 py-2.5 rounded-xl transition">⚙️ مفتاح AI OCR</button>
+        </div>
+      </div>
+
+      <!-- رادار المتابعة الدورية (Retention Radar) -->
+      <div class="bg-amber-50/80 border border-amber-200 rounded-3xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-extrabold text-amber-900 flex items-center gap-2">
+            <span>🔔 رادار المتابعة الدورية (عملاء مر على فحصهم أكثر من 14 يوماً)</span>
+            <span id="overdueCount" class="bg-amber-500 text-white text-xs px-2.5 py-0.5 rounded-full">0</span>
+          </h3>
+        </div>
+        <div id="overdueList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+          <p class="text-amber-700">جاري فحص مواعيد المتابعة...</p>
+        </div>
+      </div>
+
+      <!-- نموذج تسجيل قياس InBody جديد -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 card-shadow border border-slate-100">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100">
+            <div>
+              <h3 class="text-lg font-extrabold text-slate-800">تسجيل قياس InBody جديد</h3>
+              <p class="text-xs text-slate-500">اختر العميل ثم أدخل القراءات يدوياً أو ارفع صورة التقرير</p>
+            </div>
+            <!-- زر القراءة الذكية بالذكاء الاصطناعي -->
+            <label class="cursor-pointer bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow flex items-center gap-2 transition">
+              <span>📸 قراءة صورة InBody بالذكاء الاصطناعي</span>
+              <input type="file" accept="image/*" capture="environment" class="hidden" onchange="scanInbodyImage(event)" />
+            </label>
+          </div>
+
+          <div id="aiScanStatus" class="hidden mb-4 p-3 rounded-xl bg-indigo-50 text-indigo-800 text-xs font-bold flex items-center gap-2">
+            <span class="loader"></span>
+            <span>جاري تحليل ورقة الـ InBody واستخراج الأرقام عبر الذكاء الاصطناعي...</span>
+          </div>
+
+          <form onsubmit="saveMeasurement(event)" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">اختر العميل *</label>
+                <select id="mClientId" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                  <option value="">-- اختر العميل --</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">تاريخ الزيارة *</label>
+                <input type="date" id="mDate" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold" />
+              </div>
+            </div>
+
+            <!-- مؤشرات InBody الأساسية -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 pt-2">
+              <div class="bg-blue-50/50 p-3 rounded-2xl border border-blue-100">
+                <label class="block text-[11px] font-bold text-blue-900 mb-1">الوزن (kg) *</label>
+                <input type="number" step="0.1" id="mWeight" required oninput="autoGenerateClinicalAdvice()" class="w-full px-2.5 py-1.5 rounded-lg border border-blue-200 font-extrabold text-center" />
+              </div>
+              <div class="bg-orange-50/50 p-3 rounded-2xl border border-orange-100">
+                <label class="block text-[11px] font-bold text-orange-900 mb-1">نسبة الدهون % *</label>
+                <input type="number" step="0.1" id="mPbf" required oninput="autoGenerateClinicalAdvice()" class="w-full px-2.5 py-1.5 rounded-lg border border-orange-200 font-extrabold text-center" />
+              </div>
+              <div class="bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100">
+                <label class="block text-[11px] font-bold text-emerald-900 mb-1">العضلات SMM (kg) *</label>
+                <input type="number" step="0.1" id="mSmm" required oninput="autoGenerateClinicalAdvice()" class="w-full px-2.5 py-1.5 rounded-lg border border-emerald-200 font-extrabold text-center" />
+              </div>
+              <div class="bg-rose-50/50 p-3 rounded-2xl border border-rose-100">
+                <label class="block text-[11px] font-bold text-rose-900 mb-1">الدهون الحشوية *</label>
+                <input type="number" id="mVisceral" required oninput="autoGenerateClinicalAdvice()" class="w-full px-2.5 py-1.5 rounded-lg border border-rose-200 font-extrabold text-center" />
+              </div>
+              <div class="bg-purple-50/50 p-3 rounded-2xl border border-purple-100">
+                <label class="block text-[11px] font-bold text-purple-900 mb-1">معدل الحرق BMR *</label>
+                <input type="number" id="mBmr" required class="w-full px-2.5 py-1.5 rounded-lg border border-purple-200 font-extrabold text-center" />
+              </div>
+            </div>
+
+            <!-- مؤشرات إكلينيكية إضافية -->
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">محيط الخصر (cm)</label>
+                <input type="number" step="0.5" id="mWaist" placeholder="اختياري" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-center" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">ضغط الدم (BP)</label>
+                <input type="text" id="mBp" placeholder="120/80" dir="ltr" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-center" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-600 mb-1">السكر التراكمي HbA1c</label>
+                <input type="number" step="0.1" id="mHba1c" placeholder="5.6" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm text-center" />
+              </div>
+            </div>
+
+            <!-- التوصية التغذوية والمكملات -->
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="text-xs font-bold text-slate-700">توصية الصيدلي المختص والمكملات المرشحة</label>
+                <button type="button" onclick="autoGenerateClinicalAdvice(true)" class="text-xs text-blue-600 font-bold hover:underline">✨ توليد توصية ذكية</button>
+              </div>
+              <textarea id="mNotes" rows="3" placeholder="اكتب النصيحة الغذائية والمكملات المقترحة للعميل..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"></textarea>
+            </div>
+
+            <button type="submit" id="saveMeasureBtn" class="w-full shams-gradient text-white font-bold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition">
+              💾 حفظ القياس وتجهيز رابط الواتساب للعميل
+            </button>
+          </form>
+
+          <!-- بطاقة إرسال الواتساب الفورية بعد الحفظ -->
+          <div id="whatsappShareBox" class="hidden mt-5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p class="font-extrabold text-emerald-900 text-sm">تم حفظ نتيجة الفحص بنجاح في السحابة!</p>
+              <p class="text-xs text-emerald-700">أرسل الرابط المباشر للعميل ليشاهد تطوره والرسوم البيانية فوراً:</p>
+            </div>
+            <a id="whatsappShareLink" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl shadow flex items-center gap-2">
+              <span>📲 إرسال التقرير عبر واتساب</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- قائمة أحدث العملاء والمسجلين -->
+        <div class="bg-white rounded-3xl p-6 card-shadow border border-slate-100 flex flex-col">
+          <h3 class="text-lg font-extrabold text-slate-800 mb-3">سجل العملاء المسجلين</h3>
+          <input type="text" id="searchClientInput" oninput="renderClientsDirectory()" placeholder="ابحث بالاسم أو رقم الجوال..." class="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm mb-4" />
+          <div id="clientsDirectoryList" class="space-y-2.5 overflow-y-auto max-h-[500px] flex-1">
+            <p class="text-xs text-slate-400 text-center py-6">جاري تحميل العملاء...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. بوابة العميل الصحية (Client Health Passport) -->
+    <section id="view-client" class="hidden space-y-6">
+      <!-- بطاقة الترحيب والرسالة التحفيزية الذكية -->
+      <div class="shams-gradient text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="bg-white/20 text-xs font-bold px-3 py-1 rounded-full">ملفك الصحي الذكي • صيدليات شمس</span>
+            <h2 id="cFullName" class="text-2xl md:text-3xl font-extrabold mt-2">أهلاً بك</h2>
+            <p id="cDoctorBadge" class="text-xs text-blue-100 mt-1 hidden"></p>
+          </div>
+          <div class="bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[140px]">
+            <span class="text-xs text-blue-100 block">الوزن المستهدف</span>
+            <span id="cTargetWeight" class="text-2xl font-extrabold text-emerald-300">-- kg</span>
+          </div>
+        </div>
+
+        <!-- الرسالة التحفيزية الذكية -->
+        <div id="cMotivationalBanner" class="mt-6 bg-white/15 backdrop-blur-md border border-white/25 rounded-2xl p-4 flex items-start gap-3">
+          <span class="text-2xl">🏆</span>
+          <div>
+            <h4 class="font-extrabold text-sm text-emerald-200">مؤشر الإنجاز الذكي</h4>
+            <p id="cMotivationalText" class="text-sm text-white mt-0.5 leading-relaxed">جاري تحليل تطور قياساتك...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- بطاقات آخر قياس -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="bg-white p-5 rounded-3xl card-shadow border border-slate-100 text-center">
+          <span class="text-xs font-bold text-slate-400">الوزن الحالي</span>
+          <div id="statWeight" class="text-2xl font-extrabold text-blue-900 mt-1">--</div>
+          <span id="diffWeight" class="text-xs font-bold mt-1 inline-block"></span>
+        </div>
+        <div class="bg-white p-5 rounded-3xl card-shadow border border-slate-100 text-center">
+          <span class="text-xs font-bold text-slate-400">نسبة الدهون PBF</span>
+          <div id="statPbf" class="text-2xl font-extrabold text-orange-600 mt-1">--</div>
+          <span id="diffPbf" class="text-xs font-bold mt-1 inline-block"></span>
+        </div>
+        <div class="bg-white p-5 rounded-3xl card-shadow border border-slate-100 text-center">
+          <span class="text-xs font-bold text-slate-400">العضلات SMM</span>
+          <div id="statSmm" class="text-2xl font-extrabold text-emerald-600 mt-1">--</div>
+          <span id="diffSmm" class="text-xs font-bold mt-1 inline-block"></span>
+        </div>
+        <div class="bg-white p-5 rounded-3xl card-shadow border border-slate-100 text-center">
+          <span class="text-xs font-bold text-slate-400">الدهون الحشوية</span>
+          <div id="statVisceral" class="text-2xl font-extrabold text-rose-600 mt-1">--</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">المستوى الصحي &lt; 10</span>
+        </div>
+        <div class="bg-white p-5 rounded-3xl card-shadow border border-slate-100 text-center col-span-2 md:col-span-1">
+          <span class="text-xs font-bold text-slate-400">معدل الحرق BMR</span>
+          <div id="statBmr" class="text-2xl font-extrabold text-purple-700 mt-1">--</div>
+          <span class="text-[11px] text-slate-400 mt-1 block">سعرة / يوم</span>
+        </div>
+      </div>
+
+      <!-- الرسم البياني + توصية الصيدلي -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white p-6 rounded-3xl card-shadow border border-slate-100">
+          <h3 class="font-extrabold text-slate-800 mb-4">📈 منحنى تطور الوزن والدهون والعضلات</h3>
+          <div class="h-72">
+            <canvas id="clientProgressChart"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl card-shadow border border-emerald-100 flex flex-col justify-between">
+          <div>
+            <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">توصية صيدلي التغذية العلاجية</span>
+            <h3 class="font-extrabold text-slate-800 text-lg mt-3 mb-2">خطة المكملات والنصائح</h3>
+            <div id="cPharmacistNotes" class="bg-slate-50 p-4 rounded-2xl text-sm text-slate-700 leading-relaxed whitespace-pre-line border border-slate-100">
+              لا توجد توصيات مسجلة بعد.
+            </div>
+          </div>
+          <a id="cConsultPharmBtn" href="https://wa.me/966500000000" target="_blank" class="mt-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-center shadow-lg transition block">
+            💬 تواصل مع صيدلي شمس لطلب المكملات
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. بوابة الأطباء الشركاء (Doctor Partner Portal - Read Only) -->
+    <section id="view-doctor" class="hidden space-y-6">
+      <div class="bg-white rounded-3xl p-6 card-shadow border border-slate-100 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <span class="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">بوابة الأطباء الشركاء (للقراءة والمتابعة الإكلينيكية)</span>
+          <h2 id="docWelcomeName" class="text-2xl font-extrabold text-slate-800 mt-1">د. --</h2>
+          <p id="docSpecialty" class="text-sm text-slate-500">--</p>
+        </div>
+        <div class="bg-slate-50 px-4 py-2.5 rounded-2xl border border-slate-200 text-center">
+          <span class="text-xs text-slate-500 block">عدد الحالات المحولة</span>
+          <span id="docPatientsCount" class="text-xl font-extrabold text-blue-800">0</span>
+        </div>
+      </div>
+
+      <div id="docPatientsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- بطاقات المرضى المحولين للطبيب -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== النوافذ المنبثقة (Modals) ==================== -->
+
+  <!-- نافذة إضافة عميل جديد -->
+  <div id="modal-new-client" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+      <h3 class="text-lg font-extrabold text-slate-800 mb-4">تسجيل عميل جديد في Shams Health</h3>
+      <form onsubmit="createClient(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-bold mb-1">اسم العميل الكامل *</label>
+          <input type="text" id="ncName" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200" />
+        </div>
+        <div>
+          <label class="block font-bold mb-1">رقم الجوال (يستخدم لدخول العميل) *</label>
+          <input type="tel" id="ncPhone" required placeholder="05xxxxxxxx" dir="ltr" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-left" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">الجنس</label>
+            <select id="ncGender" class="w-full px-3 py-2.5 rounded-xl border border-slate-200">
+              <option value="male">ذكر</option>
+              <option value="female">أنثى</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold mb-1">الوزن المستهدف (kg)</label>
+            <input type="number" step="0.5" id="ncTarget" placeholder="75" class="w-full px-3 py-2.5 rounded-xl border border-slate-200" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">الطبيب المعالج / المحوِّل (اختياري)</label>
+          <select id="ncDoctorId" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200">
+            <option value="">-- بدون طبيب محدد --</option>
+          </select>
+        </div>
+        <div class="flex gap-2 pt-3">
+          <button type="submit" class="flex-1 bg-blue-700 text-white font-bold py-2.5 rounded-xl">حفظ العميل</button>
+          <button type="button" onclick="closeModal('modal-new-client')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة إضافة طبيب شريك -->
+  <div id="modal-new-doctor" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+      <h3 class="text-lg font-extrabold text-slate-800 mb-4">إضافة طبيب شريك (صلاحية متابعة فقط)</h3>
+      <form onsubmit="createDoctor(event)" class="space-y-3 text-sm">
+        <div>
+          <label class="block font-bold mb-1">اسم الطبيب *</label>
+          <input type="text" id="ndName" required placeholder="د. أحمد السالم" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200" />
+        </div>
+        <div>
+          <label class="block font-bold mb-1">التخصص والعيادة *</label>
+          <input type="text" id="ndSpecialty" required placeholder="استشاري غدد صماء وسكري - مجمع الشفاء" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold mb-1">رقم جوال الطبيب *</label>
+            <input type="tel" id="ndPhone" required placeholder="05xxxxxxxx" dir="ltr" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-left" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1">كود الدخول (PIN) *</label>
+            <input type="text" id="ndCode" required placeholder="5566" dir="ltr" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-left font-bold" />
+          </div>
+        </div>
+        <div class="flex gap-2 pt-3">
+          <button type="submit" class="flex-1 bg-emerald-600 text-white font-bold py-2.5 rounded-xl">إنشاء حساب الطبيب</button>
+          <button type="button" onclick="closeModal('modal-new-doctor')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold">إلغاء</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- نافذة إعداد مفتاح Gemini API لقراءة الصور -->
+  <div id="modal-ai-settings" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
+      <h3 class="text-lg font-extrabold text-slate-800 mb-2">إعداد قارئ صور InBody الذكي</h3>
+      <p class="text-xs text-slate-500 mb-4">أدخل مفتاح Gemini API المجاني ليتم حفظه في متصفحك واستخدامه لاستخراج الأرقام تلقائياً من صور تقارير الميزان.</p>
+      <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." dir="ltr" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-left text-sm mb-4" />
+      <div class="flex gap-2">
+        <button onclick="saveGeminiKey()" class="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm">حفظ المفتاح</button>
+        <button onclick="closeModal('modal-ai-settings')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-sm">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== المنطق البرمجي للتطبيق ==================== -->
+  <script>
+    let currentLoginRole = 'client';
+    let currentPharmacist = null;
+    let allClients = [];
+    let allDoctors = [];
+    let clientChartInstance = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('mDate').valueAsDate = new Date();
+      document.getElementById('geminiApiKeyInput').value = localStorage.getItem('shams_gemini_key') || '';
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const clientPhoneParam = urlParams.get('client');
+      if (clientPhoneParam) {
+        await loadClientPortalByPhone(clientPhoneParam);
+      }
+    });
+
+    function showToast(msg, icon = '✅') {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      document.getElementById('toastIcon').innerText = icon;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 4000);
+    }
+
+    function showView(viewName) {
+      ['login', 'pharmacist', 'client', 'doctor'].forEach(v => {
+        document.getElementById(`view-${v}`).classList.add('hidden');
+      });
+      document.getElementById(`view-${viewName}`).classList.remove('hidden');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function setLoginRole(role) {
+      currentLoginRole = role;
+      ['client', 'pharmacist', 'doctor'].forEach(r => {
+        const btn = document.getElementById(`tab-${r}`);
+        if (r === role) {
+          btn.className = 'py-2.5 rounded-xl bg-white text-blue-800 shadow transition';
+        } else {
+          btn.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition';
+        }
+      });
+      document.getElementById('pinFieldContainer').classList.toggle('hidden', role === 'client');
+    }
+
+    // ==================== تسجيل الدخول ====================
+    async function handleLogin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('loginPhone').value.trim();
+      const pin = document.getElementById('loginPin').value.trim();
+
+      if (currentLoginRole === 'client') {
+        await loadClientPortalByPhone(phone);
+      } else if (currentLoginRole === 'pharmacist') {
+        const { data, error } = await db.from('pharmacists').select('*, branches(name, city, whatsapp_number)').eq('phone', phone).eq('pin_code', pin).single();
+        if (error || !data) {
+          showToast('رقم الجوال أو رمز الدخول غير صحيح', '❌');
+          return;
+        }
+        currentPharmacist = data;
+        document.getElementById('pharmWelcomeName').innerText = `أهلاً ${data.full_name}`;
+        document.getElementById('pharmBranchName').innerText = data.branches ? `${data.branches.name} - ${data.branches.city}` : 'صيدليات شمس';
+        showView('pharmacist');
+        await refreshPharmacistDashboard();
+      } else if (currentLoginRole === 'doctor') {
+        const { data, error } = await db.from('doctors').select('*').eq('phone', phone).eq('access_code', pin).single();
+        if (error || !data) {
+          showToast('بيانات الطبيب غير صحيحة', '❌');
+          return;
+        }
+        await loadDoctorPortal(data);
+      }
+    }
+
+    // ==================== وظائف لوحة الصيدلي ====================
+    async function refreshPharmacistDashboard() {
+      const [clientsRes, doctorsRes, measurementsRes] = await Promise.all([
+        db.from('clients').select('*, doctors(full_name)').order('created_at', { ascending: false }),
+        db.from('doctors').select('*').order('full_name'),
+        db.from('measurements').select('*').order('visit_date', { ascending: false })
+      ]);
+
+      allClients = clientsRes.data || [];
+      allDoctors = doctorsRes.data || [];
+      const allMeasurements = measurementsRes.data || [];
+
+      const clientSelect = document.getElementById('mClientId');
+      clientSelect.innerHTML = '<option value="">-- اختر العميل --</option>' +
+        allClients.map(c => `<option value="${c.id}">${c.full_name} (${c.phone})</option>`).join('');
+
+      const docSelect = document.getElementById('ncDoctorId');
+      docSelect.innerHTML = '<option value="">-- بدون طبيب محدد --</option>' +
+        allDoctors.map(d => `<option value="${d.id}">${d.full_name} - ${d.specialty}</option>`).join('');
+
+      renderClientsDirectory();
+      renderOverdueRadar(allClients, allMeasurements);
+    }
+
+    function renderClientsDirectory() {
+      const q = document.getElementById('searchClientInput').value.trim().toLowerCase();
+      const filtered = allClients.filter(c => c.full_name.toLowerCase().includes(q) || c.phone.includes(q));
+      const container = document.getElementById('clientsDirectoryList');
+
+      if (!filtered.length) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">لا يوجد عملاء مطابقون</p>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(c => `
+        <div class="p-3 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-blue-50/50 transition flex items-center justify-between">
+          <div>
+            <p class="font-bold text-sm text-slate-800">${c.full_name}</p>
+            <p class="text-xs text-slate-500" dir="ltr">${c.phone}</p>
+            ${c.doctors ? `<span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">د. ${c.doctors.full_name}</span>` : ''}
+          </div>
+          <button onclick="loadClientPortalByPhone('${c.phone}')" class="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-blue-700 hover:bg-blue-700 hover:text-white transition">
+            معاينة الملف
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderOverdueRadar(clients, measurements) {
+      const today = new Date();
+      const overdueClients = [];
+
+      clients.forEach(c => {
+        const clientMeasures = measurements.filter(m => m.client_id === c.id);
+        if (clientMeasures.length > 0) {
+          const lastVisit = new Date(clientMeasures[0].visit_date);
+          const diffDays = Math.floor((today - lastVisit) / (1000 * 60 * 60 * 24));
+          if (diffDays >= 14) {
+            overdueClients.push({ ...c, diffDays, lastWeight: clientMeasures[0].weight });
+          }
+        }
+      });
+
+      document.getElementById('overdueCount').innerText = overdueClients.length;
+      const list = document.getElementById('overdueList');
+
+      if (!overdueClients.length) {
+        list.innerHTML = '<p class="text-emerald-700 font-semibold text-xs">ممتاز! جميع العملاء ملتزمون بمواعيد الفحص الدوري.</p>';
+        return;
+      }
+
+      list.innerHTML = overdueClients.map(c => {
+        const cleanPhone = c.phone.startsWith('0') ? '966' + c.phone.slice(1) : c.phone;
+        const msg = encodeURIComponent(`أهلاً أستاذ ${c.full_name} 🌿
+معك صيدلي التغذية العلاجية من صيدليات شمس.
+مرّ ${c.diffDays} يوماً على آخر فحص InBody لك (وكان وزنك ${c.lastWeight} كجم). يسعدنا تشريفك لنا في الفرع لإجراء الفحص الدوري المجاني ومتابعة تقدمك! 💪`);
+        return `
+          <div class="bg-white p-3.5 rounded-2xl border border-amber-200 flex items-center justify-between gap-2 shadow-sm">
+            <div>
+              <p class="font-bold text-slate-800 text-xs">${c.full_name}</p>
+              <p class="text-[11px] text-amber-700 font-semibold">متأخر منذ ${c.diffDays} يوم</p>
+            </div>
+            <a href="https://wa.me/${cleanPhone}?text=${msg}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition shrink-0">
+              تذكير واتساب
+            </a>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function createClient(e) {
+      e.preventDefault();
+      const payload = {
+        full_name: document.getElementById('ncName').value.trim(),
+        phone: document.getElementById('ncPhone').value.trim(),
+        gender: document.getElementById('ncGender').value,
+        target_weight: document.getElementById('ncTarget').value || null,
+        doctor_id: document.getElementById('ncDoctorId').value || null,
+        branch_id: currentPharmacist?.branch_id || null
+      };
+
+      const { error } = await db.from('clients').insert([payload]);
+      if (error) {
+        showToast('تعذر الحفظ: تأكد أن رقم الجوال غير مسجل مسبقاً', '❌');
+        return;
+      }
+      closeModal('modal-new-client');
+      showToast('تم إضافة العميل بنجاح');
+      await refreshPharmacistDashboard();
+    }
+
+    async function createDoctor(e) {
+      e.preventDefault();
+      const payload = {
+        full_name: document.getElementById('ndName').value.trim(),
+        specialty: document.getElementById('ndSpecialty').value.trim(),
+        phone: document.getElementById('ndPhone').value.trim(),
+        access_code: document.getElementById('ndCode').value.trim()
+      };
+
+      const { error } = await db.from('doctors').insert([payload]);
+      if (error) {
+        showToast('حدث خطأ أثناء إضافة الطبيب', '❌');
+        return;
+      }
+      closeModal('modal-new-doctor');
+      showToast('تم إنشاء حساب الطبيب الشريك بنجاح');
+      await refreshPharmacistDashboard();
+    }
+
+    // ==================== محرك التوصيات الذكي ====================
+    function autoGenerateClinicalAdvice(force = false) {
+      const notesField = document.getElementById('mNotes');
+      if (!force && notesField.value.trim().length > 15) return;
+
+      const pbf = parseFloat(document.getElementById('mPbf').value) || 0;
+      const visceral = parseInt(document.getElementById('mVisceral').value) || 0;
+      const smm = parseFloat(document.getElementById('mSmm').value) || 0;
+      const weight = parseFloat(document.getElementById('mWeight').value) || 0;
+
+      if (!weight) return;
+
+      let advice = [];
+      if (visceral >= 10) {
+        advice.push("• لدعم حرق الدهون الحشوية: نوصي بأوميغا 3 بتركيز عالٍ + ألياف طبيعية قبل الوجبات الرئيسية.");
+      }
+      if (pbf > 28) {
+        advice.push("• لتحسين معدل الأيض وحرق الدهون: شاي أخضر مركز / L-Carnitine مع تقليل السكريات البسيطة.");
+      }
+      if (weight > 0 && (smm / weight) < 0.36) {
+        advice.push("• لحماية الكتلة العضلية وزيادة الشبع: Whey Protein Isolate (سكوب يومياً) + فيتامين D3 5000 IU.");
+      }
+      if (advice.length === 0) {
+        advice.push("• مؤشراتك متوازنة! ننصح بالاستمرار على Multi-Vitamin يومياً وشرب 2.5 لتر ماء للحفاظ على الكتلة العضلية.");
+      }
+
+      notesField.value = advice.join("\n");
+    }
+
+    // ==================== قراءة صورة InBody بالذكاء الاصطناعي (Gemini Vision) ====================
+    function saveGeminiKey() {
+      const key = document.getElementById('geminiApiKeyInput').value.trim();
+      localStorage.setItem('shams_gemini_key', key);
+      closeModal('modal-ai-settings');
+      showToast('تم حفظ مفتاح Gemini API في متصفحك');
+    }
+
+    async function scanInbodyImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const apiKey = localStorage.getItem('shams_gemini_key');
+      if (!apiKey) {
+        openModal('modal-ai-settings');
+        showToast('يرجى إدخال مفتاح Gemini API أولاً لتفعيل قراءة الصور', '⚠️');
+        return;
+      }
+
+      document.getElementById('aiScanStatus').classList.remove('hidden');
+
+      try {
+        const base64Data = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.readAsDataURL(file);
+        });
+
+        const prompt = `Extract InBody body composition metrics from this medical printout image. Return ONLY valid JSON with these exact keys (use null if not visible): {"weight": number, "pbf": number, "smm": number, "visceral_fat": number, "bmr": number, "waist_cm": number}`;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: file.type, data: base64Data } }
+              ]
+            }]
+          })
+        });
+
+        const result = await response.json();
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.weight) document.getElementById('mWeight').value = parsed.weight;
+          if (parsed.pbf) document.getElementById('mPbf').value = parsed.pbf;
+          if (parsed.smm) document.getElementById('mSmm').value = parsed.smm;
+          if (parsed.visceral_fat) document.getElementById('mVisceral').value = parsed.visceral_fat;
+          if (parsed.bmr) document.getElementById('mBmr').value = parsed.bmr;
+          if (parsed.waist_cm) document.getElementById('mWaist').value = parsed.waist_cm;
+
+          autoGenerateClinicalAdvice(true);
+          showToast('تم استخراج قراءات الـ InBody بنجاح! راجعها ثم اضغط حفظ');
+        } else {
+          showToast('لم يتم التعرف على الأرقام بوضوح، يرجى الإدخال يدوياً', '⚠️');
+        }
+      } catch (err) {
+        showToast('حدث خطأ أثناء الاتصال بالذكاء الاصطناعي', '❌');
+      } finally {
+        document.getElementById('aiScanStatus').classList.add('hidden');
+      }
+    }
+
+    // ==================== حفظ القياس وتوليد رابط الواتساب ====================
+    async function saveMeasurement(e) {
+      e.preventDefault();
+      const clientId = document.getElementById('mClientId').value;
+      const clientObj = allClients.find(c => c.id === clientId);
+
+      const payload = {
+        client_id: clientId,
+        pharmacist_id: currentPharmacist?.id || null,
+        branch_id: currentPharmacist?.branch_id || null,
+        visit_date: document.getElementById('mDate').value,
+        weight: parseFloat(document.getElementById('mWeight').value),
+        pbf: parseFloat(document.getElementById('mPbf').value),
+        smm: parseFloat(document.getElementById('mSmm').value),
+        visceral_fat: parseInt(document.getElementById('mVisceral').value),
+        bmr: parseInt(document.getElementById('mBmr').value),
+        waist_cm: document.getElementById('mWaist').value ? parseFloat(document.getElementById('mWaist').value) : null,
+        blood_pressure: document.getElementById('mBp').value || null,
+        hba1c: document.getElementById('mHba1c').value ? parseFloat(document.getElementById('mHba1c').value) : null,
+        pharmacist_notes: document.getElementById('mNotes').value
+      };
+
+      const { error } = await db.from('measurements').insert([payload]);
+      if (error) {
+        showToast('حدث خطأ أثناء حفظ القياس', '❌');
+        return;
+      }
+
+      showToast('تم حفظ قياس الـ InBody في السحابة بنجاح!');
+
+      if (clientObj) {
+        const baseUrl = window.location.origin + window.location.pathname;
+        const clientLink = `${baseUrl}?client=${clientObj.phone}`;
+        const cleanPhone = clientObj.phone.startsWith('0') ? '966' + clientObj.phone.slice(1) : clientObj.phone;
+        const msg = encodeURIComponent(`مرحباً ${clientObj.full_name} 🌟\nتم تحديث نتائج فحص الـ InBody الخاص بك في *صيدليات شمس (Shams Health)*.\n\n📊 الوزن: ${payload.weight} كجم | نسبة الدهون: ${payload.pbf}% | العضلات: ${payload.smm} كجم\n\nشاهد الرسم البياني لتطورك وتوصية الصيدلي عبر الرابط المباشر:\n${clientLink}`);
+
+        document.getElementById('whatsappShareLink').href = `https://wa.me/${cleanPhone}?text=${msg}`;
+        document.getElementById('whatsappShareBox').classList.remove('hidden');
+      }
+
+      await refreshPharmacistDashboard();
+    }
+
+    // ==================== بوابة العميل الصحية ====================
+    async function loadClientPortalByPhone(phone) {
+      const { data: client, error } = await db.from('clients').select('*, doctors(full_name, specialty), branches(whatsapp_number)').eq('phone', phone).single();
+      if (error || !client) {
+        showToast('رقم الجوال غير مسجل لدينا، تفضل بزيارة أقرب فرع لصيدليات شمس', '⚠️');
+        return;
+      }
+
+      const { data: measures } = await db.from('measurements').select('*').eq('client_id', client.id).order('visit_date', { ascending: true });
+
+      document.getElementById('cFullName').innerText = `أهلاً ${client.full_name} 👋`;
+      document.getElementById('cTargetWeight').innerText = client.target_weight ? `${client.target_weight} kg` : 'غير محدد';
+
+      if (client.doctors) {
+        const docBadge = document.getElementById('cDoctorBadge');
+        docBadge.innerText = `تحت إشراف ومتابعة: د. ${client.doctors.full_name} (${client.doctors.specialty})`;
+        docBadge.classList.remove('hidden');
+      }
+
+      if (client.branches?.whatsapp_number) {
+        document.getElementById('cConsultPharmBtn').href = `https://wa.me/${client.branches.whatsapp_number}?text=${encodeURIComponent(`مرحباً صيدليات شمس، أنا ${client.full_name} وأرغب في استشارة حول مكملات تقرير InBody الخاص بي.`)}`;
+      }
+
+      if (measures && measures.length > 0) {
+        const latest = measures[measures.length - 1];
+        const prev = measures.length > 1 ? measures[measures.length - 2] : null;
+
+        document.getElementById('statWeight').innerText = `${latest.weight} kg`;
+        document.getElementById('statPbf').innerText = `${latest.pbf}%`;
+        document.getElementById('statSmm').innerText = `${latest.smm} kg`;
+        document.getElementById('statVisceral').innerText = latest.visceral_fat;
+        document.getElementById('statBmr').innerText = latest.bmr;
+        document.getElementById('cPharmacistNotes').innerText = latest.pharmacist_notes || 'استمر على نظامك الغذائي الصحي.';
+
+        if (prev) {
+          const wDiff = (latest.weight - prev.weight).toFixed(1);
+          const pbfDiff = (latest.pbf - prev.pbf).toFixed(1);
+          const smmDiff = (latest.smm - prev.smm).toFixed(1);
+
+          document.getElementById('diffWeight').innerText = `${wDiff > 0 ? '+' : ''}${wDiff} kg`;
+          document.getElementById('diffPbf').innerText = `${pbfDiff > 0 ? '+' : ''}${pbfDiff}%`;
+          document.getElementById('diffSmm').innerText = `${smmDiff > 0 ? '+' : ''}${smmDiff} kg`;
+
+          if (pbfDiff < 0 && smmDiff >= 0) {
+            document.getElementById('cMotivationalText').innerText = `إنجاز مذهل! جسمك في حالة إعادة تشكيل مثالية؛ انخفضت نسبة الدهون بمقدار ${Math.abs(pbfDiff)}% مع الحفاظ على كتلتك العضلية وزيادتها (+${smmDiff} كجم). استمر على هذا المسار الرائع!`;
+          } else if (wDiff < 0) {
+            document.getElementById('cMotivationalText').innerText = `رائع جداً! لقد خسرت ${Math.abs(wDiff)} كجم منذ زيارتك السابقة. كل خطوة تقربك أكثر من هدفك الصحي (${client.target_weight || ''} كجم).`;
+          } else {
+            document.getElementById('cMotivationalText').innerText = `متابعتك الدورية هي سر النجاح! راجع توصية صيدلي شمس بالأسفل لتعزيز معدل الحرق في الزيارة القادمة.`;
+          }
+        } else {
+          document.getElementById('cMotivationalText').innerText = `بداية موفقة! تم تسجيل قياسك المرجعي الأول بنجاح. موعدنا القادم بعد 14 يوماً لقياس تقدمك المبهر.`;
+        }
+
+        renderClientChart(measures);
+      }
+
+      showView('client');
+    }
+
+    function renderClientChart(measures) {
+      const ctx = document.getElementById('clientProgressChart').getContext('2d');
+      if (clientChartInstance) clientChartInstance.destroy();
+
+      clientChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: measures.map(m => m.visit_date),
+          datasets: [
+            { label: 'الوزن (kg)', data: measures.map(m => m.weight), borderColor: '#004e92', backgroundColor: '#004e92', tension: 0.35, borderWidth: 3 },
+            { label: 'نسبة الدهون (%)', data: measures.map(m => m.pbf), borderColor: '#f97316', backgroundColor: '#f97316', tension: 0.35, borderWidth: 3 },
+            { label: 'العضلات (kg)', data: measures.map(m => m.smm), borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.35, borderWidth: 3 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { family: 'Cairo', weight: 'bold' } } } }
+        }
+      });
+    }
+
+    // ==================== بوابة الأطباء الشركاء ====================
+    async function loadDoctorPortal(doctor) {
+      document.getElementById('docWelcomeName').innerText = `د. ${doctor.full_name}`;
+      document.getElementById('docSpecialty').innerText = `${doctor.specialty} ${doctor.clinic_name ? '• ' + doctor.clinic_name : ''}`;
+
+      const { data: patients } = await db.from('clients').select('*, measurements(*)').eq('doctor_id', doctor.id);
+      const list = patients || [];
+      document.getElementById('docPatientsCount').innerText = list.length;
+
+      const grid = document.getElementById('docPatientsGrid');
+      if (!list.length) {
+        grid.innerHTML = '<div class="col-span-2 bg-white p-8 rounded-3xl text-center text-slate-500">لا توجد حالات مسجلة باسمك حالياً.</div>';
+        showView('doctor');
+        return;
+      }
+
+      grid.innerHTML = list.map(p => {
+        const sorted = (p.measurements || []).sort((a, b) => new Date(b.visit_date) - new Date(a.visit_date));
+        const latest = sorted[0];
+        return `
+          <div class="bg-white p-6 rounded-3xl card-shadow border border-slate-100">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div>
+                <h4 class="font-extrabold text-lg text-slate-800">${p.full_name}</h4>
+                <p class="text-xs text-slate-400">عدد الزيارات: ${sorted.length}</p>
+              </div>
+              <button onclick="loadClientPortalByPhone('${p.phone}')" class="text-xs bg-blue-50 text-blue-700 font-bold px-3.5 py-2 rounded-xl hover:bg-blue-100 transition">
+                عرض الرسوم البيانية
+              </button>
+            </div>
+            ${latest ? `
+              <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-400 block">الوزن</span><strong class="text-sm text-blue-900">${latest.weight} kg</strong></div>
+                <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-400 block">الدهون</span><strong class="text-sm text-orange-600">${latest.pbf}%</strong></div>
+                <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-400 block">العضلات</span><strong class="text-sm text-emerald-600">${latest.smm} kg</strong></div>
+                <div class="bg-slate-50 p-2.5 rounded-xl"><span class="text-slate-400 block">HbA1c / BP</span><strong class="text-sm text-slate-700">${latest.hba1c || '-'} / ${latest.blood_pressure || '-'}</strong></div>
+              </div>
+            ` : '<p class="text-xs text-slate-400">لم يتم تسجيل قياسات بعد</p>'}
+          </div>
+        `;
+      }).join('');
+
+      showView('doctor');
+    }
+  </script>
+</body>
+</html>
