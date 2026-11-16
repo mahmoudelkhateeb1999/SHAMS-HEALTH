@@ -150,7 +150,10 @@
           <form onsubmit="saveMeasurement(event)" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">اختر العميل *</label>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-xs font-bold text-slate-700">اختر العميل *</label>
+                  <button type="button" onclick="openModal('modal-new-client')" class="text-xs text-blue-600 font-bold hover:underline">+ إضافة عميل جديد</button>
+                </div>
                 <select id="mClientId" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                   <option value="">-- اختر العميل --</option>
                 </select>
@@ -246,11 +249,18 @@
           <div>
             <span class="bg-white/20 text-xs font-bold px-3 py-1 rounded-full">ملفك الصحي الذكي • صيدليات شمس</span>
             <h2 id="cFullName" class="text-2xl md:text-3xl font-extrabold mt-2">أهلاً بك</h2>
+            <p id="cBioInfo" class="text-xs text-emerald-200 font-semibold mt-1"></p>
             <p id="cDoctorBadge" class="text-xs text-blue-100 mt-1 hidden"></p>
           </div>
-          <div class="bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[140px]">
-            <span class="text-xs text-blue-100 block">الوزن المستهدف</span>
-            <span id="cTargetWeight" class="text-2xl font-extrabold text-emerald-300">-- kg</span>
+          <div class="flex gap-3">
+            <div id="cBmiBox" class="hidden bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[115px]">
+              <span class="text-xs text-blue-100 block">مؤشر الكتلة BMI</span>
+              <span id="cBmiValue" class="text-2xl font-extrabold text-white">--</span>
+            </div>
+            <div class="bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[130px]">
+              <span class="text-xs text-blue-100 block">الوزن المستهدف</span>
+              <span id="cTargetWeight" class="text-2xl font-extrabold text-emerald-300">-- kg</span>
+            </div>
           </div>
         </div>
 
@@ -347,24 +357,32 @@
       <form onsubmit="createClient(event)" class="space-y-3 text-sm">
         <div>
           <label class="block font-bold mb-1">اسم العميل الكامل *</label>
-          <input type="text" id="ncName" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200" />
+          <input type="text" id="ncName" required placeholder="مثال: محمد عبدالله العتيبي" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200" />
         </div>
         <div>
           <label class="block font-bold mb-1">رقم الجوال (يستخدم لدخول العميل) *</label>
           <input type="tel" id="ncPhone" required placeholder="05xxxxxxxx" dir="ltr" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-left" />
         </div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-3 gap-2.5">
           <div>
-            <label class="block font-bold mb-1">الجنس</label>
-            <select id="ncGender" class="w-full px-3 py-2.5 rounded-xl border border-slate-200">
+            <label class="block font-bold mb-1 text-xs">السن (سنة) *</label>
+            <input type="number" id="ncAge" required min="5" max="110" placeholder="32" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-center" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1 text-xs">الطول (سم)</label>
+            <input type="number" step="0.5" id="ncHeight" placeholder="172" class="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-center" />
+          </div>
+          <div>
+            <label class="block font-bold mb-1 text-xs">الجنس</label>
+            <select id="ncGender" class="w-full px-2.5 py-2.5 rounded-xl border border-slate-200">
               <option value="male">ذكر</option>
               <option value="female">أنثى</option>
             </select>
           </div>
-          <div>
-            <label class="block font-bold mb-1">الوزن المستهدف (kg)</label>
-            <input type="number" step="0.5" id="ncTarget" placeholder="75" class="w-full px-3 py-2.5 rounded-xl border border-slate-200" />
-          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">الوزن المستهدف (kg)</label>
+          <input type="number" step="0.5" id="ncTarget" placeholder="75" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200" />
         </div>
         <div>
           <label class="block font-bold mb-1">الطبيب المعالج / المحوِّل (اختياري)</label>
@@ -517,7 +535,7 @@
 
       const clientSelect = document.getElementById('mClientId');
       clientSelect.innerHTML = '<option value="">-- اختر العميل --</option>' +
-        allClients.map(c => `<option value="${c.id}">${c.full_name} (${c.phone})</option>`).join('');
+        allClients.map(c => `<option value="${c.id}">${c.full_name} ${c.age ? '(' + c.age + ' سنة)' : ''} - ${c.phone}</option>`).join('');
 
       const docSelect = document.getElementById('ncDoctorId');
       docSelect.innerHTML = '<option value="">-- بدون طبيب محدد --</option>' +
@@ -540,7 +558,7 @@
       container.innerHTML = filtered.map(c => `
         <div class="p-3 rounded-2xl border border-slate-100 bg-slate-50/70 hover:bg-blue-50/50 transition flex items-center justify-between">
           <div>
-            <p class="font-bold text-sm text-slate-800">${c.full_name}</p>
+            <p class="font-bold text-sm text-slate-800">${c.full_name} ${c.age ? `<span class="text-xs font-normal text-slate-500">(${c.age} سنة)</span>` : ''}</p>
             <p class="text-xs text-slate-500" dir="ltr">${c.phone}</p>
             ${c.doctors ? `<span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">د. ${c.doctors.full_name}</span>` : ''}
           </div>
@@ -598,13 +616,15 @@
       const payload = {
         full_name: document.getElementById('ncName').value.trim(),
         phone: document.getElementById('ncPhone').value.trim(),
+        age: document.getElementById('ncAge').value ? parseInt(document.getElementById('ncAge').value) : null,
+        height_cm: document.getElementById('ncHeight').value ? parseFloat(document.getElementById('ncHeight').value) : null,
         gender: document.getElementById('ncGender').value,
-        target_weight: document.getElementById('ncTarget').value || null,
+        target_weight: document.getElementById('ncTarget').value ? parseFloat(document.getElementById('ncTarget').value) : null,
         doctor_id: document.getElementById('ncDoctorId').value || null,
         branch_id: currentPharmacist?.branch_id || null
       };
 
-      const { error } = await db.from('clients').insert([payload]);
+      const { data, error } = await db.from('clients').insert([payload]).select().single();
       if (error) {
         showToast('تعذر الحفظ: تأكد أن رقم الجوال غير مسجل مسبقاً', '❌');
         return;
@@ -612,6 +632,9 @@
       closeModal('modal-new-client');
       showToast('تم إضافة العميل بنجاح');
       await refreshPharmacistDashboard();
+      if (data) {
+        document.getElementById('mClientId').value = data.id;
+      }
     }
 
     async function createDoctor(e) {
@@ -659,7 +682,8 @@
         advice.push("• مؤشراتك متوازنة! ننصح بالاستمرار على Multi-Vitamin يومياً وشرب 2.5 لتر ماء للحفاظ على الكتلة العضلية.");
       }
 
-      notesField.value = advice.join("\n");
+      notesField.value = advice.join("
+");
     }
 
     // ==================== قراءة صورة InBody بالذكاء الاصطناعي (Gemini Vision) ====================
@@ -763,7 +787,13 @@
         const baseUrl = window.location.origin + window.location.pathname;
         const clientLink = `${baseUrl}?client=${clientObj.phone}`;
         const cleanPhone = clientObj.phone.startsWith('0') ? '966' + clientObj.phone.slice(1) : clientObj.phone;
-        const msg = encodeURIComponent(`مرحباً ${clientObj.full_name} 🌟\nتم تحديث نتائج فحص الـ InBody الخاص بك في *صيدليات شمس (Shams Health)*.\n\n📊 الوزن: ${payload.weight} كجم | نسبة الدهون: ${payload.pbf}% | العضلات: ${payload.smm} كجم\n\nشاهد الرسم البياني لتطورك وتوصية الصيدلي عبر الرابط المباشر:\n${clientLink}`);
+        const msg = encodeURIComponent(`مرحباً ${clientObj.full_name} 🌟
+تم تحديث نتائج فحص الـ InBody الخاص بك في *صيدليات شمس (Shams Health)*.
+
+📊 الوزن: ${payload.weight} كجم | نسبة الدهون: ${payload.pbf}% | العضلات: ${payload.smm} كجم
+
+شاهد الرسم البياني لتطورك وتوصية الصيدلي عبر الرابط المباشر:
+${clientLink}`);
 
         document.getElementById('whatsappShareLink').href = `https://wa.me/${cleanPhone}?text=${msg}`;
         document.getElementById('whatsappShareBox').classList.remove('hidden');
@@ -783,6 +813,12 @@
       const { data: measures } = await db.from('measurements').select('*').eq('client_id', client.id).order('visit_date', { ascending: true });
 
       document.getElementById('cFullName').innerText = `أهلاً ${client.full_name} 👋`;
+      
+      let bioParts = [];
+      if (client.age) bioParts.push(`العمر: ${client.age} سنة`);
+      if (client.height_cm) bioParts.push(`الطول: ${client.height_cm} سم`);
+      document.getElementById('cBioInfo').innerText = bioParts.join(' • ');
+
       document.getElementById('cTargetWeight').innerText = client.target_weight ? `${client.target_weight} kg` : 'غير محدد';
 
       if (client.doctors) {
@@ -798,6 +834,13 @@
       if (measures && measures.length > 0) {
         const latest = measures[measures.length - 1];
         const prev = measures.length > 1 ? measures[measures.length - 2] : null;
+
+        if (client.height_cm && latest.weight) {
+          const heightM = client.height_cm / 100;
+          const bmi = (latest.weight / (heightM * heightM)).toFixed(1);
+          document.getElementById('cBmiValue').innerText = bmi;
+          document.getElementById('cBmiBox').classList.remove('hidden');
+        }
 
         document.getElementById('statWeight').innerText = `${latest.weight} kg`;
         document.getElementById('statPbf').innerText = `${latest.pbf}%`;
@@ -877,7 +920,7 @@
           <div class="bg-white p-6 rounded-3xl card-shadow border border-slate-100">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <div>
-                <h4 class="font-extrabold text-lg text-slate-800">${p.full_name}</h4>
+                <h4 class="font-extrabold text-lg text-slate-800">${p.full_name} ${p.age ? `<span class="text-xs font-normal text-slate-500">(${p.age} سنة)</span>` : ''}</h4>
                 <p class="text-xs text-slate-400">عدد الزيارات: ${sorted.length}</p>
               </div>
               <button onclick="loadClientPortalByPhone('${p.phone}')" class="text-xs bg-blue-50 text-blue-700 font-bold px-3.5 py-2 rounded-xl hover:bg-blue-100 transition">
