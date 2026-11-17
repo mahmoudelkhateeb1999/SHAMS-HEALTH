@@ -44,7 +44,7 @@
       </div>
 
       <div id="userStatusBar" class="flex items-center gap-2 text-xs">
-        <button onclick="showView('login')" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-50 transition">
+        <button type="button" onclick="showView('login')" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-50 transition">
           تسجيل الدخول / الرئيسية
         </button>
       </div>
@@ -71,9 +71,9 @@
 
         <!-- تبويبات نوع المستخدم -->
         <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1.5 rounded-2xl mb-6 text-sm font-bold">
-          <button type="button" onclick="setLoginRole('client')" id="tab-client" class="py-2.5 rounded-xl bg-white text-blue-800 shadow transition">عميل / مراجع</button>
-          <button type="button" onclick="setLoginRole('pharmacist')" id="tab-pharmacist" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition">صيدلي شمس</button>
-          <button type="button" onclick="setLoginRole('doctor')" id="tab-doctor" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition">طبيب شريك</button>
+          <button type="button" onclick="setLoginRole('client')" id="tab-client" class="py-2.5 rounded-xl bg-white text-blue-800 shadow transition cursor-pointer">عميل / مراجع</button>
+          <button type="button" onclick="setLoginRole('pharmacist')" id="tab-pharmacist" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition cursor-pointer">صيدلي شمس</button>
+          <button type="button" onclick="setLoginRole('doctor')" id="tab-doctor" class="py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition cursor-pointer">طبيب شريك</button>
         </div>
 
         <form onsubmit="handleLogin(event)" class="space-y-4">
@@ -87,7 +87,7 @@
             <input type="password" id="loginPin" placeholder="••••" dir="ltr" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-left font-bold tracking-widest" />
           </div>
 
-          <button type="submit" id="loginBtn" class="w-full shams-gradient text-white font-bold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition flex items-center justify-center gap-2">
+          <button type="submit" id="loginBtn" class="w-full shams-gradient text-white font-bold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">
             <span>دخول للمنصة</span>
           </button>
         </form>
@@ -108,9 +108,9 @@
           <p id="pharmBranchName" class="text-sm text-slate-500">صيدليات شمس</p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <button onclick="openModal('modal-new-client')" class="bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ عميل جديد</button>
-          <button onclick="openModal('modal-new-doctor')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ إضافة طبيب شريك</button>
-          <button onclick="openModal('modal-ai-settings')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold px-4 py-2.5 rounded-xl transition">⚙️ مفتاح AI OCR</button>
+          <button type="button" onclick="openModal('modal-new-client')" class="bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ عميل جديد</button>
+          <button type="button" onclick="openModal('modal-new-doctor')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ إضافة طبيب شريك</button>
+          <button type="button" onclick="openModal('modal-ai-settings')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold px-4 py-2.5 rounded-xl transition">⚙️ مفتاح AI OCR</button>
         </div>
       </div>
 
@@ -436,8 +436,8 @@
       <p class="text-xs text-slate-500 mb-4">أدخل مفتاح Gemini API المجاني ليتم حفظه في متصفحك واستخدامه لاستخراج الأرقام تلقائياً من صور تقارير الميزان.</p>
       <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." dir="ltr" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-left text-sm mb-4" />
       <div class="flex gap-2">
-        <button onclick="saveGeminiKey()" class="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm">حفظ المفتاح</button>
-        <button onclick="closeModal('modal-ai-settings')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-sm">إغلاق</button>
+        <button type="button" onclick="saveGeminiKey()" class="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-xl text-sm">حفظ المفتاح</button>
+        <button type="button" onclick="closeModal('modal-ai-settings')" class="px-4 py-2.5 rounded-xl bg-slate-100 font-bold text-sm">إغلاق</button>
       </div>
     </div>
   </div>
@@ -484,12 +484,18 @@
       ['client', 'pharmacist', 'doctor'].forEach(r => {
         const btn = document.getElementById(`tab-${r}`);
         if (r === role) {
-          btn.className = 'py-2.5 rounded-xl bg-white text-blue-800 shadow transition';
+          btn.className = 'py-2.5 rounded-xl bg-white text-blue-800 shadow transition cursor-pointer';
         } else {
-          btn.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition';
+          btn.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition cursor-pointer';
         }
       });
       document.getElementById('pinFieldContainer').classList.toggle('hidden', role === 'client');
+      const labels = {
+        client: 'دخول ملف العميل',
+        pharmacist: 'دخول لوحة تحكم الصيدلي',
+        doctor: 'دخول بوابة الطبيب الشريك'
+      };
+      document.getElementById('loginBtn').innerHTML = '<span>' + labels[role] + '</span>';
     }
 
     // ==================== تسجيل الدخول ====================
@@ -562,7 +568,7 @@
             <p class="text-xs text-slate-500" dir="ltr">${c.phone}</p>
             ${c.doctors ? `<span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">د. ${c.doctors.full_name}</span>` : ''}
           </div>
-          <button onclick="loadClientPortalByPhone('${c.phone}')" class="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-blue-700 hover:bg-blue-700 hover:text-white transition">
+          <button type="button" onclick="loadClientPortalByPhone('${c.phone}')" class="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-blue-700 hover:bg-blue-700 hover:text-white transition">
             معاينة الملف
           </button>
         </div>
@@ -594,9 +600,7 @@
 
       list.innerHTML = overdueClients.map(c => {
         const cleanPhone = c.phone.startsWith('0') ? '966' + c.phone.slice(1) : c.phone;
-        const msg = encodeURIComponent(`أهلاً أستاذ ${c.full_name} 🌿
-معك صيدلي التغذية العلاجية من صيدليات شمس.
-مرّ ${c.diffDays} يوماً على آخر فحص InBody لك (وكان وزنك ${c.lastWeight} كجم). يسعدنا تشريفك لنا في الفرع لإجراء الفحص الدوري المجاني ومتابعة تقدمك! 💪`);
+        const msg = encodeURIComponent(`أهلاً أستاذ ${c.full_name} 🌿\nمعك صيدلي التغذية العلاجية من صيدليات شمس.\nمرّ ${c.diffDays} يوماً على آخر فحص InBody لك (وكان وزنك ${c.lastWeight} كجم). يسعدنا تشريفك لنا في الفرع لإجراء الفحص الدوري المجاني ومتابعة تقدمك! 💪`);
         return `
           <div class="bg-white p-3.5 rounded-2xl border border-amber-200 flex items-center justify-between gap-2 shadow-sm">
             <div>
@@ -682,8 +686,7 @@
         advice.push("• مؤشراتك متوازنة! ننصح بالاستمرار على Multi-Vitamin يومياً وشرب 2.5 لتر ماء للحفاظ على الكتلة العضلية.");
       }
 
-      notesField.value = advice.join("
-");
+      notesField.value = advice.join("\n");
     }
 
     // ==================== قراءة صورة InBody بالذكاء الاصطناعي (Gemini Vision) ====================
@@ -787,13 +790,7 @@
         const baseUrl = window.location.origin + window.location.pathname;
         const clientLink = `${baseUrl}?client=${clientObj.phone}`;
         const cleanPhone = clientObj.phone.startsWith('0') ? '966' + clientObj.phone.slice(1) : clientObj.phone;
-        const msg = encodeURIComponent(`مرحباً ${clientObj.full_name} 🌟
-تم تحديث نتائج فحص الـ InBody الخاص بك في *صيدليات شمس (Shams Health)*.
-
-📊 الوزن: ${payload.weight} كجم | نسبة الدهون: ${payload.pbf}% | العضلات: ${payload.smm} كجم
-
-شاهد الرسم البياني لتطورك وتوصية الصيدلي عبر الرابط المباشر:
-${clientLink}`);
+        const msg = encodeURIComponent(`مرحباً ${clientObj.full_name} 🌟\nتم تحديث نتائج فحص الـ InBody الخاص بك في *صيدليات شمس (Shams Health)*.\n\n📊 الوزن: ${payload.weight} كجم | نسبة الدهون: ${payload.pbf}% | العضلات: ${payload.smm} كجم\n\nشاهد الرسم البياني لتطورك وتوصية الصيدلي عبر الرابط المباشر:\n${clientLink}`);
 
         document.getElementById('whatsappShareLink').href = `https://wa.me/${cleanPhone}?text=${msg}`;
         document.getElementById('whatsappShareBox').classList.remove('hidden');
@@ -923,7 +920,7 @@ ${clientLink}`);
                 <h4 class="font-extrabold text-lg text-slate-800">${p.full_name} ${p.age ? `<span class="text-xs font-normal text-slate-500">(${p.age} سنة)</span>` : ''}</h4>
                 <p class="text-xs text-slate-400">عدد الزيارات: ${sorted.length}</p>
               </div>
-              <button onclick="loadClientPortalByPhone('${p.phone}')" class="text-xs bg-blue-50 text-blue-700 font-bold px-3.5 py-2 rounded-xl hover:bg-blue-100 transition">
+              <button type="button" onclick="loadClientPortalByPhone('${p.phone}')" class="text-xs bg-blue-50 text-blue-700 font-bold px-3.5 py-2 rounded-xl hover:bg-blue-100 transition">
                 عرض الرسوم البيانية
               </button>
             </div>
