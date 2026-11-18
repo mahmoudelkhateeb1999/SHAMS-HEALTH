@@ -44,7 +44,10 @@
       </div>
 
       <div id="userStatusBar" class="flex items-center gap-2 text-xs">
-        <button type="button" onclick="showView('login')" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-50 transition">
+        <a href="https://shamspharmacy.com/" target="_blank" rel="noopener noreferrer" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-white border border-emerald-300/40 font-bold px-3.5 py-2 rounded-xl transition hidden sm:inline-flex items-center gap-1">
+          <span>🛒 متجر صيدليات شمس</span>
+        </a>
+        <button type="button" onclick="logoutUser()" class="bg-white text-blue-900 font-bold px-4 py-2 rounded-xl shadow hover:bg-blue-50 transition">
           تسجيل الدخول / الرئيسية
         </button>
       </div>
@@ -78,17 +81,17 @@
 
         <form onsubmit="handleLogin(event)" class="space-y-4">
           <div>
-            <label class="block text-sm font-bold text-slate-700 mb-1">رقم الجوال</label>
-            <input type="tel" id="loginPhone" required placeholder="05xxxxxxxx" dir="ltr" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left font-semibold" />
+            <label id="loginIdentifierLabel" class="block text-sm font-bold text-slate-700 mb-1">رقم الجوال</label>
+            <input type="text" id="loginPhone" required placeholder="05xxxxxxxx" dir="ltr" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left font-semibold" />
           </div>
 
           <div id="pinFieldContainer" class="hidden">
-            <label class="block text-sm font-bold text-slate-700 mb-1">رمز الدخول السري (PIN)</label>
+            <label id="loginPinLabel" class="block text-sm font-bold text-slate-700 mb-1">رمز الدخول السري (PIN)</label>
             <input type="password" id="loginPin" placeholder="••••" dir="ltr" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-left font-bold tracking-widest" />
           </div>
 
           <button type="submit" id="loginBtn" class="w-full shams-gradient text-white font-bold py-3.5 rounded-xl shadow-lg hover:opacity-95 transition flex items-center justify-center gap-2 cursor-pointer">
-            <span>دخول للمنصة</span>
+            <span>دخول ملف العميل</span>
           </button>
         </form>
 
@@ -103,13 +106,24 @@
       <!-- شريط الترحيب والإعدادات -->
       <div class="bg-white rounded-3xl p-6 card-shadow border border-slate-100 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">لوحة تحكم الصيدلي المختص</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">لوحة تحكم الصيدلي المختص</span>
+            <span id="pharmCodeBadge" class="hidden text-xs font-extrabold text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-200"></span>
+          </div>
           <h2 id="pharmWelcomeName" class="text-2xl font-extrabold text-slate-800 mt-1">أهلاً دكتور</h2>
           <p id="pharmBranchName" class="text-sm text-slate-500">صيدليات شمس</p>
         </div>
-        <div class="flex flex-wrap gap-2">
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- فلتر الفروع يظهر فقط للمدير العام Super Admin -->
+          <div id="superAdminBranchFilterBox" class="hidden">
+            <select id="adminBranchFilter" onchange="refreshPharmacistDashboard()" class="px-3.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50/60 text-blue-900 font-bold text-xs outline-none">
+              <option value="all">جميع الفروع (25 فرع)</option>
+            </select>
+          </div>
           <button type="button" onclick="openModal('modal-new-client')" class="bg-blue-700 hover:bg-blue-800 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ عميل جديد</button>
           <button type="button" onclick="openModal('modal-new-doctor')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">+ إضافة طبيب شريك</button>
+          <button type="button" id="manageBranchesBtn" onclick="openBranchesModal()" class="hidden bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow transition">🏥 إدارة الفروع</button>
           <button type="button" onclick="openModal('modal-ai-settings')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold px-4 py-2.5 rounded-xl transition">⚙️ مفتاح AI OCR</button>
         </div>
       </div>
@@ -251,6 +265,15 @@
             <h2 id="cFullName" class="text-2xl md:text-3xl font-extrabold mt-2">أهلاً بك</h2>
             <p id="cBioInfo" class="text-xs text-emerald-200 font-semibold mt-1"></p>
             <p id="cDoctorBadge" class="text-xs text-blue-100 mt-1 hidden"></p>
+            <div id="cBranchLocationBox" class="hidden mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+              <span id="cBranchAddressText" class="bg-white/15 px-3 py-1 rounded-full text-white font-semibold"></span>
+              <a id="cBranchMapBtn" href="#" target="_blank" class="bg-emerald-400 text-slate-900 hover:bg-emerald-300 font-extrabold px-3 py-1 rounded-full shadow transition inline-flex items-center gap-1">
+                <span>📍 موقع الفرع على الخريطة</span>
+              </a>
+              <a href="https://shamspharmacy.com/" target="_blank" rel="noopener noreferrer" class="bg-white text-blue-900 hover:bg-blue-50 font-extrabold px-3 py-1 rounded-full shadow transition inline-flex items-center gap-1">
+                <span>🌐 موقع صيدليات شمس</span>
+              </a>
+            </div>
           </div>
           <div class="flex gap-3">
             <div id="cBmiBox" class="hidden bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[115px]">
@@ -320,9 +343,14 @@
               لا توجد توصيات مسجلة بعد.
             </div>
           </div>
-          <a id="cConsultPharmBtn" href="https://wa.me/966500000000" target="_blank" class="mt-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-center shadow-lg transition block">
-            💬 تواصل مع صيدلي شمس لطلب المكملات
-          </a>
+          <div class="mt-5 space-y-2.5">
+            <a id="cConsultPharmBtn" href="https://wa.me/966500000000" target="_blank" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-center shadow-lg transition block">
+              💬 تواصل مع صيدلي شمس لطلب المكملات
+            </a>
+            <a href="https://shamspharmacy.com/" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-3 rounded-xl text-center shadow transition flex items-center justify-center gap-2 text-sm">
+              <span>🛒 تسوق المكملات من متجر صيدليات شمس</span>
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -429,6 +457,22 @@
     </div>
   </div>
 
+  <!-- نافذة إدارة الفروع وكلمات المرور (للمدير العام Super Admin) -->
+  <div id="modal-branches" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-extrabold text-slate-800">إدارة الفروع وكلمات الدخول (25 فرع)</h3>
+          <p class="text-xs text-slate-500">يمكنك تعديل اسم الفرع أو رقم الواتساب أو كلمة السر لأي صيدلية مباشرة</p>
+        </div>
+        <button type="button" onclick="closeModal('modal-branches')" class="px-3 py-1.5 rounded-xl bg-slate-100 font-bold text-sm">✕</button>
+      </div>
+      <div id="branchesManagerList" class="space-y-3 overflow-y-auto flex-1 pr-1 text-xs">
+        <p class="text-center text-slate-400 py-6">جاري تحميل قائمة الفروع...</p>
+      </div>
+    </div>
+  </div>
+
   <!-- نافذة إعداد مفتاح Gemini API لقراءة الصور -->
   <div id="modal-ai-settings" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
@@ -448,6 +492,7 @@
     let currentPharmacist = null;
     let allClients = [];
     let allDoctors = [];
+    let allBranches = [];
     let clientChartInstance = null;
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -476,6 +521,11 @@
       document.getElementById(`view-${viewName}`).classList.remove('hidden');
     }
 
+    function logoutUser() {
+      currentPharmacist = null;
+      showView('login');
+    }
+
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
@@ -489,7 +539,29 @@
           btn.className = 'py-2.5 rounded-xl text-slate-600 hover:text-slate-900 transition cursor-pointer';
         }
       });
+
+      const phoneInput = document.getElementById('loginPhone');
+      const idLabel = document.getElementById('loginIdentifierLabel');
+      const pinLabel = document.getElementById('loginPinLabel');
+      const pinInput = document.getElementById('loginPin');
+
       document.getElementById('pinFieldContainer').classList.toggle('hidden', role === 'client');
+
+      if (role === 'pharmacist') {
+        idLabel.innerText = 'رقم الصيدلية (مثل P0001) أو رقم الجوال';
+        phoneInput.placeholder = 'P0001';
+        pinLabel.innerText = 'كلمة السر (مثل In0001)';
+        pinInput.placeholder = 'In0001';
+      } else if (role === 'doctor') {
+        idLabel.innerText = 'رقم جوال الطبيب';
+        phoneInput.placeholder = '05xxxxxxxx';
+        pinLabel.innerText = 'كود الدخول السري (PIN)';
+        pinInput.placeholder = '••••';
+      } else {
+        idLabel.innerText = 'رقم الجوال';
+        phoneInput.placeholder = '05xxxxxxxx';
+      }
+
       const labels = {
         client: 'دخول ملف العميل',
         pharmacist: 'دخول لوحة تحكم الصيدلي',
@@ -501,24 +573,49 @@
     // ==================== تسجيل الدخول ====================
     async function handleLogin(e) {
       e.preventDefault();
-      const phone = document.getElementById('loginPhone').value.trim();
+      let rawIdentifier = document.getElementById('loginPhone').value.trim();
       const pin = document.getElementById('loginPin').value.trim();
 
       if (currentLoginRole === 'client') {
-        await loadClientPortalByPhone(phone);
+        await loadClientPortalByPhone(rawIdentifier);
       } else if (currentLoginRole === 'pharmacist') {
-        const { data, error } = await db.from('pharmacists').select('*, branches(name, city, whatsapp_number)').eq('phone', phone).eq('pin_code', pin).single();
+        // توحيد كتابة كود الصيدلية ليقبل p0001 أو P0001
+        if (/^p\d+$/i.test(rawIdentifier)) {
+          rawIdentifier = rawIdentifier.toUpperCase();
+        }
+
+        const { data, error } = await db
+          .from('pharmacists')
+          .select('*, branches(id, name, city, address, pharmacy_code, google_maps_url, whatsapp_number)')
+          .or(`phone.eq.${rawIdentifier},pharmacy_code.eq.${rawIdentifier}`)
+          .eq('pin_code', pin)
+          .single();
+
         if (error || !data) {
-          showToast('رقم الجوال أو رمز الدخول غير صحيح', '❌');
+          showToast('رقم الصيدلية أو كلمة السر غير صحيحة', '❌');
           return;
         }
+
         currentPharmacist = data;
         document.getElementById('pharmWelcomeName').innerText = `أهلاً ${data.full_name}`;
         document.getElementById('pharmBranchName').innerText = data.branches ? `${data.branches.name} - ${data.branches.city}` : 'صيدليات شمس';
+
+        const codeBadge = document.getElementById('pharmCodeBadge');
+        if (data.pharmacy_code || data.branches?.pharmacy_code) {
+          codeBadge.innerText = `كود الفرع: ${data.pharmacy_code || data.branches.pharmacy_code}`;
+          codeBadge.classList.remove('hidden');
+        } else {
+          codeBadge.classList.add('hidden');
+        }
+
+        const isSuperAdmin = data.role === 'super_admin';
+        document.getElementById('superAdminBranchFilterBox').classList.toggle('hidden', !isSuperAdmin);
+        document.getElementById('manageBranchesBtn').classList.toggle('hidden', !isSuperAdmin);
+
         showView('pharmacist');
         await refreshPharmacistDashboard();
       } else if (currentLoginRole === 'doctor') {
-        const { data, error } = await db.from('doctors').select('*').eq('phone', phone).eq('access_code', pin).single();
+        const { data, error } = await db.from('doctors').select('*').eq('phone', rawIdentifier).eq('access_code', pin).single();
         if (error || !data) {
           showToast('بيانات الطبيب غير صحيحة', '❌');
           return;
@@ -529,15 +626,39 @@
 
     // ==================== وظائف لوحة الصيدلي ====================
     async function refreshPharmacistDashboard() {
-      const [clientsRes, doctorsRes, measurementsRes] = await Promise.all([
-        db.from('clients').select('*, doctors(full_name)').order('created_at', { ascending: false }),
+      const isSuperAdmin = currentPharmacist?.role === 'super_admin';
+      const selectedBranchFilter = document.getElementById('adminBranchFilter')?.value || 'all';
+
+      let clientsQuery = db.from('clients').select('*, doctors(full_name), branches(name, pharmacy_code, address, google_maps_url)').order('created_at', { ascending: false });
+      let measurementsQuery = db.from('measurements').select('*').order('visit_date', { ascending: false });
+
+      if (!isSuperAdmin && currentPharmacist?.branch_id) {
+        clientsQuery = clientsQuery.eq('branch_id', currentPharmacist.branch_id);
+        measurementsQuery = measurementsQuery.eq('branch_id', currentPharmacist.branch_id);
+      } else if (isSuperAdmin && selectedBranchFilter !== 'all') {
+        clientsQuery = clientsQuery.eq('branch_id', selectedBranchFilter);
+        measurementsQuery = measurementsQuery.eq('branch_id', selectedBranchFilter);
+      }
+
+      const [clientsRes, doctorsRes, measurementsRes, branchesRes] = await Promise.all([
+        clientsQuery,
         db.from('doctors').select('*').order('full_name'),
-        db.from('measurements').select('*').order('visit_date', { ascending: false })
+        measurementsQuery,
+        db.from('branches').select('*').order('pharmacy_code', { ascending: true })
       ]);
 
       allClients = clientsRes.data || [];
       allDoctors = doctorsRes.data || [];
+      allBranches = branchesRes.data || [];
       const allMeasurements = measurementsRes.data || [];
+
+      if (isSuperAdmin) {
+        const filterSelect = document.getElementById('adminBranchFilter');
+        const currentVal = filterSelect.value;
+        filterSelect.innerHTML = '<option value="all">جميع الفروع (' + allBranches.length + ' فرع)</option>' +
+          allBranches.map(b => `<option value="${b.id}">${b.pharmacy_code ? b.pharmacy_code + ' - ' : ''}${b.name}</option>`).join('');
+        filterSelect.value = currentVal || 'all';
+      }
 
       const clientSelect = document.getElementById('mClientId');
       clientSelect.innerHTML = '<option value="">-- اختر العميل --</option>' +
@@ -566,7 +687,10 @@
           <div>
             <p class="font-bold text-sm text-slate-800">${c.full_name} ${c.age ? `<span class="text-xs font-normal text-slate-500">(${c.age} سنة)</span>` : ''}</p>
             <p class="text-xs text-slate-500" dir="ltr">${c.phone}</p>
-            ${c.doctors ? `<span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">د. ${c.doctors.full_name}</span>` : ''}
+            <div class="flex flex-wrap gap-1 mt-1">
+              ${c.branches?.pharmacy_code ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">${c.branches.pharmacy_code}</span>` : ''}
+              ${c.doctors ? `<span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">د. ${c.doctors.full_name}</span>` : ''}
+            </div>
           </div>
           <button type="button" onclick="loadClientPortalByPhone('${c.phone}')" class="text-xs bg-white border border-slate-200 px-3 py-1.5 rounded-xl font-bold text-blue-700 hover:bg-blue-700 hover:text-white transition">
             معاينة الملف
@@ -600,7 +724,8 @@
 
       list.innerHTML = overdueClients.map(c => {
         const cleanPhone = c.phone.startsWith('0') ? '966' + c.phone.slice(1) : c.phone;
-        const msg = encodeURIComponent(`أهلاً أستاذ ${c.full_name} 🌿\nمعك صيدلي التغذية العلاجية من صيدليات شمس.\nمرّ ${c.diffDays} يوماً على آخر فحص InBody لك (وكان وزنك ${c.lastWeight} كجم). يسعدنا تشريفك لنا في الفرع لإجراء الفحص الدوري المجاني ومتابعة تقدمك! 💪`);
+        const branchMap = c.branches?.google_maps_url ? `\n📍 موقع الفرع (${c.branches.address || ''}): ${c.branches.google_maps_url}` : '';
+        const msg = encodeURIComponent(`أهلاً أستاذ ${c.full_name} 🌿\nمعك صيدلي التغذية العلاجية من صيدليات شمس.\nمرّ ${c.diffDays} يوماً على آخر فحص InBody لك (وكان وزنك ${c.lastWeight} كجم). يسعدنا تشريفك لنا في الفرع لإجراء الفحص الدوري المجاني ومتابعة تقدمك! 💪${branchMap}`);
         return `
           <div class="bg-white p-3.5 rounded-2xl border border-amber-200 flex items-center justify-between gap-2 shadow-sm">
             <div>
@@ -617,6 +742,9 @@
 
     async function createClient(e) {
       e.preventDefault();
+      const selectedFilter = document.getElementById('adminBranchFilter')?.value;
+      const targetBranchId = currentPharmacist?.branch_id || (selectedFilter && selectedFilter !== 'all' ? selectedFilter : null);
+
       const payload = {
         full_name: document.getElementById('ncName').value.trim(),
         phone: document.getElementById('ncPhone').value.trim(),
@@ -625,7 +753,7 @@
         gender: document.getElementById('ncGender').value,
         target_weight: document.getElementById('ncTarget').value ? parseFloat(document.getElementById('ncTarget').value) : null,
         doctor_id: document.getElementById('ncDoctorId').value || null,
-        branch_id: currentPharmacist?.branch_id || null
+        branch_id: targetBranchId
       };
 
       const { data, error } = await db.from('clients').insert([payload]).select().single();
@@ -657,6 +785,51 @@
       }
       closeModal('modal-new-doctor');
       showToast('تم إنشاء حساب الطبيب الشريك بنجاح');
+      await refreshPharmacistDashboard();
+    }
+
+    // ==================== إدارة الفروع (للمدير العام) ====================
+    async function openBranchesModal() {
+      openModal('modal-branches');
+      const { data: pharms } = await db.from('pharmacists').select('*');
+      const container = document.getElementById('branchesManagerList');
+
+      container.innerHTML = allBranches.map(b => {
+        const p = (pharms || []).find(item => item.branch_id === b.id);
+        return `
+          <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+            <div>
+              <span class="font-extrabold text-blue-900 block">${b.pharmacy_code || 'فرع'}</span>
+              <input type="text" id="bname-${b.id}" value="${b.name}" class="mt-1 w-full px-2 py-1 rounded-lg border border-slate-200 bg-white font-semibold" />
+            </div>
+            <div>
+              <span class="text-slate-400 block">واتساب الفرع</span>
+              <input type="text" id="bwa-${b.id}" value="${b.whatsapp_number || ''}" dir="ltr" class="mt-1 w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-left" />
+            </div>
+            <div>
+              <span class="text-slate-400 block">كلمة السر</span>
+              <input type="text" id="bpin-${b.id}" value="${p ? p.pin_code : ''}" dir="ltr" class="mt-1 w-full px-2 py-1 rounded-lg border border-slate-200 bg-white text-left font-bold" />
+            </div>
+            <div class="text-left md:text-center pt-3">
+              <button type="button" onclick="updateBranchInfo('${b.id}', '${p ? p.id : ''}')" class="bg-blue-700 hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-xl">
+                حفظ التعديل
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateBranchInfo(branchId, pharmId) {
+      const newName = document.getElementById(`bname-${branchId}`).value.trim();
+      const newWa = document.getElementById(`bwa-${branchId}`).value.trim();
+      const newPin = document.getElementById(`bpin-${branchId}`).value.trim();
+
+      await db.from('branches').update({ name: newName, whatsapp_number: newWa }).eq('id', branchId);
+      if (pharmId && newPin) {
+        await db.from('pharmacists').update({ pin_code: newPin }).eq('id', pharmId);
+      }
+      showToast('تم تحديث بيانات الفرع وكلمة السر بنجاح');
       await refreshPharmacistDashboard();
     }
 
@@ -765,7 +938,7 @@
       const payload = {
         client_id: clientId,
         pharmacist_id: currentPharmacist?.id || null,
-        branch_id: currentPharmacist?.branch_id || null,
+        branch_id: clientObj?.branch_id || currentPharmacist?.branch_id || null,
         visit_date: document.getElementById('mDate').value,
         weight: parseFloat(document.getElementById('mWeight').value),
         pbf: parseFloat(document.getElementById('mPbf').value),
@@ -790,7 +963,9 @@
         const baseUrl = window.location.origin + window.location.pathname;
         const clientLink = `${baseUrl}?client=${clientObj.phone}`;
         const cleanPhone = clientObj.phone.startsWith('0') ? '966' + clientObj.phone.slice(1) : clientObj.phone;
-        const msg = encodeURIComponent(`مرحباً ${clientObj.full_name} 🌟\nتم تحديث نتائج فحص الـ InBody الخاص بك في *صيدليات شمس (Shams Health)*.\n\n📊 الوزن: ${payload.weight} كجم | نسبة الدهون: ${payload.pbf}% | العضلات: ${payload.smm} كجم\n\nشاهد الرسم البياني لتطورك وتوصية الصيدلي عبر الرابط المباشر:\n${clientLink}`);
+        const branchInfo = currentPharmacist?.branches || clientObj.branches;
+        const locLine = branchInfo?.google_maps_url ? `\n📍 موقع الفرع (${branchInfo.pharmacy_code || ''}): ${branchInfo.google_maps_url}` : '';
+        const msg = encodeURIComponent(`مرحباً ${clientObj.full_name} 🌟\nتم تحديث نتائج فحص الـ InBody الخاص بك في *صيدليات شمس (Shams Health)*.\n\n📊 الوزن: ${payload.weight} كجم | نسبة الدهون: ${payload.pbf}% | العضلات: ${payload.smm} كجم\n\nشاهد الرسم البياني لتطورك وتوصية الصيدلي عبر الرابط المباشر:\n${clientLink}${locLine}`);
 
         document.getElementById('whatsappShareLink').href = `https://wa.me/${cleanPhone}?text=${msg}`;
         document.getElementById('whatsappShareBox').classList.remove('hidden');
@@ -801,7 +976,7 @@
 
     // ==================== بوابة العميل الصحية ====================
     async function loadClientPortalByPhone(phone) {
-      const { data: client, error } = await db.from('clients').select('*, doctors(full_name, specialty), branches(whatsapp_number)').eq('phone', phone).single();
+      const { data: client, error } = await db.from('clients').select('*, doctors(full_name, specialty), branches(name, city, address, pharmacy_code, google_maps_url, whatsapp_number)').eq('phone', phone).single();
       if (error || !client) {
         showToast('رقم الجوال غير مسجل لدينا، تفضل بزيارة أقرب فرع لصيدليات شمس', '⚠️');
         return;
@@ -824,8 +999,23 @@
         docBadge.classList.remove('hidden');
       }
 
-      if (client.branches?.whatsapp_number) {
-        document.getElementById('cConsultPharmBtn').href = `https://wa.me/${client.branches.whatsapp_number}?text=${encodeURIComponent(`مرحباً صيدليات شمس، أنا ${client.full_name} وأرغب في استشارة حول مكملات تقرير InBody الخاص بي.`)}`;
+      const locBox = document.getElementById('cBranchLocationBox');
+      if (client.branches) {
+        locBox.classList.remove('hidden');
+        const codeTag = client.branches.pharmacy_code ? `(${client.branches.pharmacy_code}) ` : '';
+        document.getElementById('cBranchAddressText').innerText = `🏥 فرع المتابعة: ${codeTag}${client.branches.address || client.branches.name}`;
+        const mapBtn = document.getElementById('cBranchMapBtn');
+        if (client.branches.google_maps_url) {
+          mapBtn.href = client.branches.google_maps_url;
+          mapBtn.classList.remove('hidden');
+        } else {
+          mapBtn.classList.add('hidden');
+        }
+        if (client.branches.whatsapp_number) {
+          document.getElementById('cConsultPharmBtn').href = `https://wa.me/${client.branches.whatsapp_number}?text=${encodeURIComponent(`مرحباً ${client.branches.name}، أنا ${client.full_name} وأرغب في استشارة حول مكملات تقرير InBody الخاص بي.`)}`;
+        }
+      } else {
+        locBox.classList.add('hidden');
       }
 
       if (measures && measures.length > 0) {
